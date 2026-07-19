@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Florida HOA Notice Generator — free draft notices for board review</title>
+<meta name="description" content="Free client-side generator for Florida HOA draft notices: violation notices (s. 720.305), late assessment / intent-to-lien notices (s. 720.3085), and board meeting notices (s. 720.303). Drafts for board review — not legal advice.">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --ink: #1c2733;
+    --muted: #5b6b7b;
+    --line: #d8dee6;
+    --accent: #1f5fa8;
+    --accent-ink: #ffffff;
+    --warn-bg: #fff7e0;
+    --warn-line: #e3c866;
+    --warn-ink: #5c4a00;
+    --note-bg: #eef3f9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181d;
+      --panel: #1d232b;
+      --ink: #e6ebf1;
+      --muted: #9aa8b6;
+      --line: #384352;
+      --accent: #5b96d6;
+      --accent-ink: #10151b;
+      --warn-bg: #33290e;
+      --warn-line: #7a6420;
+      --warn-ink: #ecd98a;
+      --note-bg: #232c37;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  header, main, footer { max-width: 860px; margin: 0 auto; padding: 0 1rem; }
+  header { padding-top: 1.5rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+  .tagline { color: var(--muted); margin: 0 0 1rem; }
+  .disclaimer {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    color: var(--warn-ink);
+    border-radius: 8px;
+    padding: .8rem 1rem;
+    font-size: .95rem;
+    margin-bottom: 1.25rem;
+  }
+  .disclaimer strong { text-transform: uppercase; letter-spacing: .03em; font-size: .8rem; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .tabs button {
+    flex: 1 1 12rem;
+    font: inherit;
+    font-size: .95rem;
+    padding: .6rem .8rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+    font-weight: bold;
+  }
+  form {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.25rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  form h2 { font-size: 1.15rem; margin: .25rem 0 .25rem; }
+  .statute-tag { color: var(--muted); font-size: .85rem; margin: 0 0 .9rem; }
+  fieldset { border: none; margin: 0 0 .5rem; padding: 0; }
+  label { display: block; font-size: .9rem; margin: .7rem 0 .2rem; color: var(--muted); }
+  input[type="text"], input[type="date"], input[type="time"], input[type="number"], textarea, select {
+    width: 100%;
+    font: inherit;
+    font-size: .95rem;
+    padding: .5rem .6rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  textarea { min-height: 4.5rem; resize: vertical; }
+  .row { display: flex; gap: .8rem; flex-wrap: wrap; }
+  .row > div { flex: 1 1 12rem; }
+  .radio-row { margin-top: .7rem; }
+  .radio-row label { display: flex; gap: .45rem; align-items: flex-start; color: var(--ink); font-size: .95rem; margin: .35rem 0; cursor: pointer; }
+  .radio-row input { width: auto; margin-top: .25rem; }
+  .generate {
+    margin-top: 1.1rem;
+    font: inherit;
+    font-weight: bold;
+    padding: .65rem 1.4rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .generate:hover { filter: brightness(1.08); }
+  #output-section { display: none; margin-bottom: 1.5rem; }
+  .output-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .7rem; }
+  .output-actions button {
+    font: inherit; font-size: .9rem;
+    padding: .5rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  #notice-output {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.4rem 1.5rem;
+    white-space: pre-wrap;
+    font-size: .95rem;
+    overflow-x: auto;
+  }
+  .cta {
+    background: var(--note-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin: 0 0 1.5rem;
+  }
+  .cta a { color: var(--accent); font-weight: bold; }
+  footer { color: var(--muted); font-size: .85rem; padding-bottom: 2rem; }
+  /* Print: show only the generated notice */
+  @media print {
+    body { background: #fff; color: #000; }
+    header, .tabs, form, .output-actions, .cta, footer { display: none !important; }
+    #output-section { display: block !important; }
+    #notice-output { border: none; padding: 0; font-size: 11pt; color: #000; background: #fff; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Florida HOA Notice Generator</h1>
+  <p class="tagline">Free, offline, no signup. Statute-aware draft notices for self-managed Florida HOA boards — Chapter 720, Florida Statutes (as amended through HB&nbsp;1203, 2024).</p>
+  <div class="disclaimer">
+    <strong>Standing disclaimer</strong><br>
+    This tool prepares a draft for board review. It is not legal advice and no
+    attorney-client relationship is created. A board member must review and approve
+    before sending. Verify current statute text — laws change.
+  </div>
+</header>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" aria-selected="true" id="tab-violation" onclick="showTab('violation')">Violation notice<br><small>s. 720.305</small></button>
+    <button type="button" role="tab" aria-selected="false" id="tab-assessment" onclick="showTab('assessment')">Late assessment / lien intent<br><small>s. 720.3085</small></button>
+    <button type="button" role="tab" aria-selected="false" id="tab-meeting" onclick="showTab('meeting')">Board meeting notice<br><small>s. 720.303</small></button>
+  </div>
+
+  <!-- ============ VIOLATION NOTICE ============ -->
+  <form id="form-violation" onsubmit="event.preventDefault(); generateViolation();">
+    <h2>Violation Notice &amp; Opportunity for Hearing</h2>
+    <p class="statute-tag">Framework: s. 720.305, Florida Statutes, incl. HB&nbsp;1203 (2024) notice-content requirements. The draft includes 14-day notice / hearing language and fine-limit language, with verify markers on statutory parameters.</p>
+    <div class="row">
+      <div><label for="v-assoc">Association name</label><input type="text" id="v-assoc" placeholder="Sunrise Palms Homeowners Association, Inc."></div>
+      <div><label for="v-assoc-addr">Association mailing address</label><input type="text" id="v-assoc-addr" placeholder="123 Palm Way, Tampa, FL 33601"></div>
+    </div>
+    <div class="row">
+      <div><label for="v-owner">Owner name(s)</label><input type="text" id="v-owner" placeholder="Jane Q. Owner"></div>
+      <div><label for="v-parcel">Parcel / property address</label><input type="text" id="v-parcel" placeholder="456 Sunrise Ct, Tampa, FL 33601"></div>
+    </div>
+    <div class="row">
+      <div><label for="v-date">Notice date</label><input type="date" id="v-date"></div>
+      <div><label for="v-docref">Governing-document provision violated</label><input type="text" id="v-docref" placeholder="Declaration Art. VII, s. 7.2 (lawn maintenance)"></div>
+    </div>
+    <label for="v-desc">Description of the violation (be specific: what, where, when observed)</label>
+    <textarea id="v-desc" placeholder="Grass and weeds on the front lawn exceed 12 inches in height, observed on ..."></textarea>
+    <label for="v-cure">Specific action required to cure</label>
+    <textarea id="v-cure" placeholder="Mow the lawn and remove weeds so that grass height does not exceed 6 inches."></textarea>
+    <div class="row">
+      <div><label for="v-cure-by">Cure-by date</label><input type="date" id="v-cure-by"></div>
+      <div><label for="v-fine">Proposed fine per violation ($)</label><input type="number" id="v-fine" min="0" step="1" placeholder="100"></div>
+    </div>
+    <div class="row">
+      <div><label for="v-hearing-date">Hearing date</label><input type="date" id="v-hearing-date"></div>
+      <div><label for="v-hearing-time">Hearing time</label><input type="time" id="v-hearing-time"></div>
+    </div>
+    <label for="v-hearing-loc">Hearing location and how to attend (address, room, phone/video access details)</label>
+    <input type="text" id="v-hearing-loc" placeholder="Clubhouse meeting room, 123 Palm Way; or by phone: ...">
+    <div class="row">
+      <div><label for="v-contact">Board contact name</label><input type="text" id="v-contact" placeholder="John Board, Secretary"></div>
+      <div><label for="v-contact-info">Contact email / phone</label><input type="text" id="v-contact-info" placeholder="board@example.org / (813) 555-0100"></div>
+    </div>
+    <button class="generate" type="submit">Generate draft violation notice</button>
+  </form>
+
+  <!-- ============ LATE ASSESSMENT / LIEN INTENT ============ -->
+  <form id="form-assessment" style="display:none" onsubmit="event.preventDefault(); generateAssessment();">
+    <h2>Late Assessment / Intent-to-Lien Sequence</h2>
+    <p class="statute-tag">Framework: s. 720.3085, Florida Statutes — the 45-day notice ladder. Start with the Notice of Late Assessment; the Notice of Intent to Record a Claim of Lien is the next rung.</p>
+    <div class="radio-row">
+      <label><input type="radio" name="a-stage" value="late" checked> <span><strong>Stage 1 — Notice of Late Assessment</strong> (s. 720.3085(3)): the delinquency notice the statute requires before collection attorney fees may be charged.</span></label>
+      <label><input type="radio" name="a-stage" value="lien"> <span><strong>Stage 2 — Notice of Intent to Record a Claim of Lien</strong> (s. 720.3085(4)): the 45-day demand before a lien may be recorded.</span></label>
+    </div>
+    <div class="row">
+      <div><label for="a-assoc">Association name</label><input type="text" id="a-assoc" placeholder="Sunrise Palms Homeowners Association, Inc."></div>
+      <div><label for="a-assoc-addr">Association mailing address</label><input type="text" id="a-assoc-addr" placeholder="123 Palm Way, Tampa, FL 33601"></div>
+    </div>
+    <div class="row">
+      <div><label for="a-owner">Owner name(s)</label><input type="text" id="a-owner" placeholder="Jane Q. Owner"></div>
+      <div><label for="a-parcel">Parcel / property address</label><input type="text" id="a-parcel" placeholder="456 Sunrise Ct, Tampa, FL 33601"></div>
+    </div>
+    <div class="row">
+      <div><label for="a-date">Notice date</label><input type="date" id="a-date"></div>
+      <div><label for="a-total">Total amount due ($)</label><input type="number" id="a-total" min="0" step="0.01" placeholder="1240.00"></div>
+    </div>
+    <label for="a-breakdown">Itemized breakdown (assessments, interest, late fees — one item per line)</label>
+    <textarea id="a-breakdown" placeholder="Q1 2026 assessment: $500.00&#10;Q2 2026 assessment: $500.00&#10;Late fees: $50.00&#10;Interest: $190.00"></textarea>
+    <div class="row">
+      <div><label for="a-payto">Make payment payable / deliverable to</label><input type="text" id="a-payto" placeholder="Sunrise Palms HOA, Inc., 123 Palm Way, Tampa, FL 33601"></div>
+      <div><label for="a-contact-info">Questions contact (email / phone)</label><input type="text" id="a-contact-info" placeholder="treasurer@example.org / (813) 555-0100"></div>
+    </div>
+    <button class="generate" type="submit">Generate draft assessment notice</button>
+  </form>
+
+  <!-- ============ BOARD MEETING NOTICE ============ -->
+  <form id="form-meeting" style="display:none" onsubmit="event.preventDefault(); generateMeeting();">
+    <h2>Board Meeting Notice</h2>
+    <p class="statute-tag">Framework: s. 720.303(2), Florida Statutes — 48-hour posted notice norm for board meetings, with markers for the cases that need more notice.</p>
+    <div class="row">
+      <div><label for="m-assoc">Association name</label><input type="text" id="m-assoc" placeholder="Sunrise Palms Homeowners Association, Inc."></div>
+      <div><label for="m-post-date">Date notice is posted</label><input type="date" id="m-post-date"></div>
+    </div>
+    <div class="row">
+      <div><label for="m-date">Meeting date</label><input type="date" id="m-date"></div>
+      <div><label for="m-time">Meeting time</label><input type="time" id="m-time"></div>
+    </div>
+    <label for="m-loc">Meeting location (and phone/video access if offered)</label>
+    <input type="text" id="m-loc" placeholder="Clubhouse meeting room, 123 Palm Way, Tampa, FL">
+    <label for="m-agenda">Agenda items (one per line)</label>
+    <textarea id="m-agenda" placeholder="Call to order&#10;Approval of prior minutes&#10;Landscaping contract renewal&#10;Adjournment"></textarea>
+    <div class="radio-row">
+      <label><input type="checkbox" id="m-assessments"> <span>Assessments will be considered at this meeting (adds the required statement and a stronger notice-requirement warning)</span></label>
+    </div>
+    <div class="row">
+      <div><label for="m-contact">Posted by (name, role)</label><input type="text" id="m-contact" placeholder="John Board, Secretary"></div>
+      <div><label for="m-contact-info">Contact email / phone</label><input type="text" id="m-contact-info" placeholder="board@example.org / (813) 555-0100"></div>
+    </div>
+    <button class="generate" type="submit">Generate draft meeting notice</button>
+  </form>
+
+  <!-- ============ OUTPUT ============ -->
+  <section id="output-section" aria-live="polite">
+    <div class="output-actions">
+      <button type="button" onclick="copyNotice()" id="copy-btn">Copy to clipboard</button>
+      <button type="button" onclick="window.print()">Print / save as PDF</button>
+    </div>
+    <div id="notice-output"></div>
+  </section>
+
+  <div class="cta">
+    Want this automated end-to-end — balances tracked, every statutory notice drafted in
+    sequence, certified mail queued, you just click approve?
+    <strong>Founding boards: $149/mo.</strong>
+    <a href="mailto:phillipmex3@outlook.com?subject=QuorumHOA%20founding%20board">Email us</a>.
+  </div>
+</main>
+
+<footer>
+  <p>Runs entirely in your browser — nothing you type is sent anywhere. Statute references:
+  ss. 720.303, 720.305, 720.3085, Florida Statutes, as amended through HB&nbsp;1203 (2024).
+  Confirm current text at the Florida Legislature's Online Sunshine site before relying on
+  any parameter. This tool prepares drafts for board review; it is not legal advice.</p>
+</footer>
+
+<script>
+"use strict";
+
+function showTab(name) {
+  var tabs = ["violation", "assessment", "meeting"];
+  for (var i = 0; i < tabs.length; i++) {
+    var t = tabs[i];
+    document.getElementById("form-" + t).style.display = (t === name) ? "" : "none";
+    document.getElementById("tab-" + t).setAttribute("aria-selected", t === name ? "true" : "false");
+  }
+  document.getElementById("output-section").style.display = "none";
+}
+
+function val(id, fallback) {
+  var el = document.getElementById(id);
+  var v = el && el.value ? el.value.trim() : "";
+  return v !== "" ? v : (fallback || "________________");
+}
+
+function fmtDate(id) {
+  var raw = document.getElementById(id).value;
+  if (!raw) return "________________";
+  var parts = raw.split("-"); // yyyy-mm-dd
+  if (parts.length !== 3) return raw;
+  var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var m = parseInt(parts[1], 10);
+  var d = parseInt(parts[2], 10);
+  if (isNaN(m) || isNaN(d) || m < 1 || m > 12) return raw;
+  return months[m - 1] + " " + d + ", " + parts[0];
+}
+
+var DISCLAIMER_BLOCK =
+  "DRAFT FOR BOARD REVIEW ONLY\n" +
+  "This tool prepares a draft for board review. It is not legal advice and no\n" +
+  "attorney-client relationship is created. A board member must review and approve\n" +
+  "before sending. Verify current statute text - laws change.";
+
+function assemble(title, statuteLine, body, footnotes) {
+  var out = title + "\n" + statuteLine + "\n\n" + body;
+  out += "\n\n----------------------------------------------------------------\n";
+  out += "VERIFY CURRENT STATUTE - CHECK THESE BEFORE SENDING:\n";
+  for (var i = 0; i < footnotes.length; i++) {
+    out += "[" + (i + 1) + "] " + footnotes[i] + "\n";
+  }
+  out += "----------------------------------------------------------------\n";
+  out += DISCLAIMER_BLOCK;
+  return out;
+}
+
+function showOutput(text) {
+  var section = document.getElementById("output-section");
+  document.getElementById("notice-output").textContent = text;
+  section.style.display = "block";
+  section.scrollIntoView({ behavior: "smooth" });
+}
+
+/* ---------- Violation notice (s. 720.305) ---------- */
+function generateViolation() {
+  var assoc = val("v-assoc");
+  var footnotes = [
+    "Notice-content requirements: HB 1203 (2024) requires fining notices to include a description of the violation, the specific action required to cure it (if applicable), and the hearing's date, location, and access details. Verify current s. 720.305, F.S.",
+    "Fine limits: $100 per violation / $1,000 aggregate for a continuing violation, unless the governing documents provide otherwise, is stated per s. 720.305(2), F.S., as understood at drafting time. VERIFY CURRENT STATUTE and your governing documents - do not rely on these figures without checking.",
+    "Hearing rights: the 14-day minimum notice, the independent-committee requirement (members not officers, directors, or employees, or their relatives), and the HB 1203 (2024) requirement that the hearing be held within 90 days must all be VERIFIED against current s. 720.305(2)(b), F.S., before sending.",
+    "Payment deadline after committee approval: HB 1203 (2024) added a deadline (understood as 30 days after notice of the committee's approval). VERIFY CURRENT STATUTE - s. 720.305, F.S."
+  ];
+
+  var body =
+    "Date: " + fmtDate("v-date") + "\n" +
+    "From: " + assoc + "\n" +
+    "       " + val("v-assoc-addr") + "\n" +
+    "To:   " + val("v-owner") + "\n" +
+    "       " + val("v-parcel") + "\n\n" +
+    "RE: Notice of violation of governing documents and opportunity for hearing\n\n" +
+    "Dear " + val("v-owner", "Owner") + ",\n\n" +
+    "The Board of Directors of " + assoc + " (the \"Association\") has determined that\n" +
+    "the following condition at " + val("v-parcel") + " does not comply with the\n" +
+    "Association's governing documents.\n\n" +
+    "DESCRIPTION OF VIOLATION [1]:\n" + val("v-desc") + "\n\n" +
+    "GOVERNING-DOCUMENT PROVISION: " + val("v-docref") + "\n\n" +
+    "SPECIFIC ACTION REQUIRED TO CURE [1]:\n" + val("v-cure") + "\n\n" +
+    "Please complete the above action on or before " + fmtDate("v-cure-by") + " and notify\n" +
+    "the Association so the matter can be closed.\n\n" +
+    "FINE INFORMATION:\n" +
+    "If the violation is not cured, the Board may seek to levy a fine of $" + val("v-fine", "____") + "\n" +
+    "per violation. Under s. 720.305(2), Florida Statutes, a fine may not exceed $100\n" +
+    "per violation, up to $1,000 in the aggregate for a continuing violation, unless the\n" +
+    "Association's governing documents provide otherwise [2].\n\n" +
+    "YOUR RIGHT TO A HEARING:\n" +
+    "Before any fine or suspension may be imposed, you are entitled to at least 14 days'\n" +
+    "written notice and an opportunity for a hearing before a committee of members who\n" +
+    "are not officers, directors, or employees of the Association, or the spouse, parent,\n" +
+    "child, brother, or sister of an officer, director, or employee [3]. If the committee\n" +
+    "does not approve the proposed fine or suspension by majority vote, it may not be\n" +
+    "imposed. If the committee approves the fine, payment is due within the period\n" +
+    "provided by statute after delivery of the notice of approval [4].\n\n" +
+    "HEARING DETAILS [1]:\n" +
+    "  Date:     " + fmtDate("v-hearing-date") + "\n" +
+    "  Time:     " + val("v-hearing-time", "____") + "\n" +
+    "  Location / how to attend: " + val("v-hearing-loc") + "\n\n" +
+    "Questions, or to confirm the violation has been cured, contact " + val("v-contact") + "\n" +
+    "at " + val("v-contact-info") + ".\n\n" +
+    "Sincerely,\n\n" +
+    "Board of Directors\n" + assoc;
+
+  showOutput(assemble(
+    "NOTICE OF VIOLATION AND OPPORTUNITY FOR HEARING",
+    "(Draft prepared under the framework of s. 720.305, Florida Statutes, as amended by HB 1203 (2024))",
+    body, footnotes));
+}
+
+/* ---------- Late assessment / intent to lien (s. 720.3085) ---------- */
+function generateAssessment() {
+  var stage = "late";
+  var radios = document.getElementsByName("a-stage");
+  for (var i = 0; i < radios.length; i++) {
+    if (radios[i].checked) { stage = radios[i].value; }
+  }
+  var assoc = val("a-assoc");
+  var owner = val("a-owner");
+  var parcel = val("a-parcel");
+  var common =
+    "Date: " + fmtDate("a-date") + "\n" +
+    "From: " + assoc + "\n" +
+    "       " + val("a-assoc-addr") + "\n" +
+    "To:   " + owner + "\n" +
+    "       " + parcel + "\n\n";
+  var amounts =
+    "ITEMIZED AMOUNTS DUE:\n" + val("a-breakdown") + "\n\n" +
+    "TOTAL AMOUNT DUE AS OF " + fmtDate("a-date") + ": $" + val("a-total", "________") + "\n" +
+    "(Additional assessments, interest, and permitted charges may continue to accrue.)\n\n" +
+    "Make payment payable / deliverable to:\n" + val("a-payto") + "\n\n";
+
+  if (stage === "late") {
+    var fnLate = [
+      "The 45-day period, and the fact that this notice must be delivered before attorney fees related to collection may be charged, are stated per s. 720.3085(3), F.S., as understood at drafting time. VERIFY CURRENT STATUTE.",
+      "s. 720.3085(3)(d), F.S., prescribes a specific statutory form for the Notice of Late Assessment. Compare this draft against the current statutory form text and conform it before sending. VERIFY CURRENT STATUTE.",
+      "Delivery method matters: verify the current statutory requirements for how this notice must be sent (e.g., first-class mail to the parcel address and any other address on file). VERIFY CURRENT STATUTE - s. 720.3085, F.S."
+    ];
+    var bodyLate = common +
+      "RE: Past-due assessments - " + parcel + "\n\n" +
+      "Dear " + owner + ",\n\n" +
+      "The Association's records show that assessments owed to " + assoc + " for the\n" +
+      "above parcel are past due.\n\n" +
+      amounts +
+      "You have 45 days [1] from the date of this letter to pay the total amount due. If\n" +
+      "payment in full is not received, the Association may pursue the further remedies\n" +
+      "provided by s. 720.3085, Florida Statutes, which may include a notice of intent to\n" +
+      "record a claim of lien against the parcel, and collection costs and attorney fees\n" +
+      "may be added as permitted by law and the governing documents [1][2].\n\n" +
+      "If you believe any amount shown is in error, or to arrange payment, contact\n" +
+      val("a-contact-info") + ".\n\n" +
+      "Sincerely,\n\n" +
+      "Board of Directors\n" + assoc;
+    showOutput(assemble(
+      "NOTICE OF LATE ASSESSMENT",
+      "(Draft prepared under the framework of s. 720.3085(3), Florida Statutes - sequence step 1 of the assessment-collection ladder)",
+      bodyLate, fnLate));
+  } else {
+    var fnLien = [
+      "The 45-day demand period before recording a claim of lien is stated per s. 720.3085(4), F.S., as understood at drafting time. VERIFY CURRENT STATUTE, including how the period is measured (e.g., from mailing or from receipt).",
+      "Delivery method: s. 720.3085, F.S., specifies how this notice must be sent (registered or certified mail, return receipt requested, plus first-class mail, to the parcel address and any other address on file, as understood at drafting time). VERIFY CURRENT STATUTE before sending.",
+      "Sequence check: confirm the Notice of Late Assessment (s. 720.3085(3)) step was properly completed first, and verify whether current law requires additional or updated notice content. VERIFY CURRENT STATUTE."
+    ];
+    var bodyLien = common +
+      "RE: NOTICE OF INTENT TO RECORD A CLAIM OF LIEN - " + parcel + "\n\n" +
+      "Dear " + owner + ",\n\n" +
+      "Despite prior notice, assessments owed to " + assoc + " for the above parcel\n" +
+      "remain unpaid.\n\n" +
+      amounts +
+      "PLEASE TAKE NOTICE that pursuant to s. 720.3085(4), Florida Statutes, the\n" +
+      "Association intends to record a claim of lien against the above parcel if the\n" +
+      "total amount due is not paid within 45 days [1] after this notice is provided to\n" +
+      "you. A recorded lien secures all unpaid assessments together with interest, late\n" +
+      "charges, and costs and reasonable attorney fees incurred in collection, as\n" +
+      "permitted by law and the governing documents.\n\n" +
+      "This notice is being sent in the manner required by statute [2]. If you believe\n" +
+      "any amount shown is in error, or to arrange payment, contact\n" +
+      val("a-contact-info") + ".\n\n" +
+      "Sincerely,\n\n" +
+      "Board of Directors\n" + assoc;
+    showOutput(assemble(
+      "NOTICE OF INTENT TO RECORD A CLAIM OF LIEN",
+      "(Draft prepared under the framework of s. 720.3085(4), Florida Statutes - sequence step 2 of the assessment-collection ladder)",
+      bodyLien, fnLien));
+  }
+}
+
+/* ---------- Board meeting notice (s. 720.303) ---------- */
+function generateMeeting() {
+  var assoc = val("m-assoc");
+  var assessments = document.getElementById("m-assessments").checked;
+  var footnotes = [
+    "The 48-hour posted-notice norm (conspicuous place within the community, emergency exception) is stated per s. 720.303(2), F.S., as understood at drafting time. VERIFY CURRENT STATUTE, including any additional notice methods your governing documents require or permit (e.g., website/app posting).",
+    "Certain board meetings require MORE than 48 hours' posted notice - meetings at which special assessments or amendments to rules regarding parcel use will be considered require mailed/delivered notice to members in advance (understood as 14 days, with additional content requirements). If this meeting involves either, do NOT rely on this posting alone. VERIFY CURRENT STATUTE - s. 720.303(2), F.S."
+  ];
+  if (assessments) {
+    footnotes.push("Assessment meetings: a notice of a meeting at which assessments will be considered must state that assessments will be considered and provide the nature of the assessments, as understood at drafting time. VERIFY CURRENT STATUTE - s. 720.303(2), F.S.");
+  }
+  var agendaRaw = val("m-agenda", "");
+  var agendaLines = agendaRaw.split("\n");
+  var agenda = "";
+  for (var i = 0; i < agendaLines.length; i++) {
+    var line = agendaLines[i].trim();
+    if (line !== "") agenda += "  " + (i + 1) + ". " + line + "\n";
+  }
+  if (agenda === "") agenda = "  1. ________________\n";
+
+  var body =
+    assoc + "\n\n" +
+    "TO ALL MEMBERS: Notice is hereby given of a meeting of the Board of Directors.\n\n" +
+    "  Date:     " + fmtDate("m-date") + "\n" +
+    "  Time:     " + val("m-time", "____") + "\n" +
+    "  Location: " + val("m-loc") + "\n\n" +
+    (assessments
+      ? "NOTICE: ASSESSMENTS WILL BE CONSIDERED AT THIS MEETING. The nature of the\n" +
+        "assessments to be considered is described in the agenda below [3].\n\n"
+      : "") +
+    "AGENDA:\n" + agenda + "\n" +
+    "This notice is posted on " + fmtDate("m-post-date") + ", at least 48 hours in advance\n" +
+    "of the meeting, in a conspicuous place within the community, per s. 720.303(2),\n" +
+    "Florida Statutes [1][2]. Board meetings are open to all members except as provided\n" +
+    "by statute.\n\n" +
+    "Posted by: " + val("m-contact") + "\n" +
+    "Contact:   " + val("m-contact-info");
+
+  showOutput(assemble(
+    "NOTICE OF BOARD OF DIRECTORS MEETING",
+    "(Draft prepared under the framework of s. 720.303(2), Florida Statutes)",
+    body, footnotes));
+}
+
+/* ---------- Copy ---------- */
+function copyNotice() {
+  var text = document.getElementById("notice-output").textContent;
+  var btn = document.getElementById("copy-btn");
+  function done(ok) {
+    btn.textContent = ok ? "Copied!" : "Copy failed - select and copy manually";
+    setTimeout(function () { btn.textContent = "Copy to clipboard"; }, 2500);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { done(true); }, function () { legacyCopy(text, done); });
+  } else {
+    legacyCopy(text, done);
+  }
+}
+
+function legacyCopy(text, done) {
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  var ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  done(ok);
+}
+</script>
+</body>
+</html>
